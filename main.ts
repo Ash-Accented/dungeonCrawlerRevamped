@@ -435,14 +435,27 @@ let slimeArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Sl
 //LEVEL 2
 function checkLevelClear() {
     
-    let winTiles: tiles.Location[] = tiles.getTilesByType(assets.tile`collectibleInsignia`);
+    
     if (currentLevel = 1){
+        let winTiles: tiles.Location[] = tiles.getTilesByType(assets.tile`collectibleInsignia`);
         for (let winTile of winTiles) {
             let distance = GameUtils.getDistance(winTile.x, winTile.y, player.sprite.x, player.sprite.y)
             if (distance <= 3) {
                 game.splash("You've escaped", "......or have you?");
                 currentLevel = currentLevel + 1;
                 startLevel();
+            }
+        }
+    }
+
+    if (currentLevel = 2) {
+        let winTiles: tiles.Location[] = tiles.getTilesByType(assets.tile`Win`);
+        for (let winTile of winTiles) {
+            let distance = GameUtils.getDistance(winTile.x, winTile.y, player.sprite.x, player.sprite.y)
+            if (distance <= 3) {
+                game.splash("You've found the amulet!!!!!!");
+                game.reset();
+                
             }
         }
     }
