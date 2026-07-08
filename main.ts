@@ -142,27 +142,32 @@ class BowAndArrow {
     static checkBowShot() {
         if (player.handHeldId != WeaponHeld.BowAndArrow) return;
         if (controller.A.isPressed()) {
+            let projectile: Sprite = null;
             //Animations.bowShootAnimation(player.hand);
-            let dirX = Render.getAttribute(Render.attribute.dirX)
-            let dirY = Render.getAttribute(Render.attribute.dirY)
             //let angle = Math.atan2(dirY, dirX);
-            let arrowVx = Math.cos(viewAngle)*30;
-            let arrowVy = Math.sin(viewAngle)*30;
-            let dummySprite = sprites.create(img`1`, SpriteKind.Food)
-            dummySprite.setPosition(player.sprite.x, player.sprite.y)
-            console.log(arrowVx + " | " + arrowVy)
-            let projectile = sprites.createProjectileFromSprite(assets.image`arrowBase`, dummySprite, arrowVx, arrowVy);
-            projectile.setScale(0.5, ScaleAnchor.Middle);
-            sprites.destroy(dummySprite);
-
-            let enemyArray = sprites.allOfKind(SpriteKind.Enemy);
-            for (let enemy of enemyArray) {
-                let distance = GameUtils.getDistance(enemy.x, enemy.y, projectile.x, projectile.y);
-                if (distance <= 5 && player.sprite.overlapsWith(enemy) == false && enemy.data["kind"] == EnemyKind.Slime) {
-                    //Render.setSpriteAttribute(enemy, RCSpriteAttribute.ZOffset, 0)
-                    Animations.slimeAnimationDeath(enemy);
+            let arrowVx = Math.cos(viewAngle)*20;
+            let arrowVy = Math.sin(viewAngle)*20;
+            
+            timer.throttle("bowShoot", 3000, function(){
+                let dummySprite = sprites.create(img`1`, SpriteKind.Food)
+                dummySprite.setPosition(player.sprite.x + arrowVx, player.sprite.y + arrowVy)
+                console.log(arrowVx + " | " + arrowVy)
+                projectile = sprites.createProjectileFromSprite(assets.image`arrowBase`, dummySprite, arrowVx, arrowVy);
+                projectile.setScale(0.5, ScaleAnchor.Middle);
+                sprites.destroy(dummySprite);
+            })
+            if (projectile != null) {
+                let enemyArray = sprites.allOfKind(SpriteKind.Enemy);
+                for (let enemy of enemyArray) {
+                    let distance = GameUtils.getDistance(enemy.x, enemy.y, projectile.x, projectile.y);
+                    if (distance <= 20 && player.sprite.overlapsWith(enemy) == false && enemy.data["kind"] == EnemyKind.Slime) {
+                        //Render.setSpriteAttribute(enemy, RCSpriteAttribute.ZOffset, 0)
+                        Animations.slimeAnimationDeath(enemy);
+                    }
                 }
             }
+
+        
         }
     }
 
@@ -436,7 +441,7 @@ let slimeArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Sl
 function checkLevelClear() {
     
     
-    if (currentLevel = 1){
+    if (currentLevel == 1){
         let winTiles: tiles.Location[] = tiles.getTilesByType(assets.tile`collectibleInsignia`);
         for (let winTile of winTiles) {
             let distance = GameUtils.getDistance(winTile.x, winTile.y, player.sprite.x, player.sprite.y)
@@ -447,12 +452,13 @@ function checkLevelClear() {
             }
         }
     }
-
-    if (currentLevel = 2) {
+    else if (currentLevel == 2) {
         let winTiles: tiles.Location[] = tiles.getTilesByType(assets.tile`Win`);
+        console.log(winTiles);
         for (let winTile of winTiles) {
             let distance = GameUtils.getDistance(winTile.x, winTile.y, player.sprite.x, player.sprite.y)
-            if (distance <= 3) {
+            console.log(distance)
+            if (distance <= 15) {
                 game.splash("You've found the amulet!!!!!!");
                 game.reset();
                 
@@ -505,7 +511,7 @@ function startLevel() {
     //for (let i = 0; i < turretCount; i++) {
         //turretEnemies.push(new Turret());
     //}
-
+    
     enemyArray = sprites.allOfKind(SpriteKind.Enemy);
     turretArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Turret);
     slimeArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Slime);
