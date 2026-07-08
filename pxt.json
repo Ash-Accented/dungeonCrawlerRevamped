@@ -1,0 +1,48 @@
+{
+    "name": "DungeonCrawler",
+    "description": "",
+    "dependencies": {
+        "device": "*",
+        "pxt-raycasting": "github:aqeeaqee/pxt-raycasting#v0.3.18",
+        "browser-events": "*",
+        "Timers": "github:microsoft/arcade-timers#v1.1.0"
+    },
+    "files": [
+        "main.ts",
+        "README.md",
+        "assets.json",
+        "images.g.jres",
+        "images.g.ts",
+        "tilemap.g.jres",
+        "tilemap.g.ts"
+    ],
+    "testFiles": [
+        "test.ts"
+    ],
+    "targetVersions": {
+        "target": "4.0.14",
+        "targetId": "arcade"
+    },
+    "supportedTargets": [
+        "arcade"
+    ],
+    "preferredEditor": "tsprj",
+    "palette": [
+        "#000000",
+        "#C0D1CC",
+        "#1D1D21",
+        "#43434F",
+        "#6B6B7A",
+        "#8B9BB4",
+        "#302C11",
+        "#A10000",
+        "#FF7E00",
+        "#FFEC27",
+        "#FF004D",
+        "#00E436",
+        "#29ADFF",
+        "#766890",
+        "#2F213B",
+        "#000000"
+    ]
+}
