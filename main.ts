@@ -13,6 +13,7 @@ function showTitleScreen() {
 
 function showStoryScreen() {
 
+
     let New = sprites.create(assets.image`Amulet`, SpriteKind.Title)
     game.showLongText("Centuries of silence are broken. You step into the damp, dark halls to reclaim the Lost Amulet. Beware the shadows...", DialogLayout.Bottom)
     // Your specific instructions
@@ -40,12 +41,13 @@ enum EnemyKind {
 enum WeaponHeld {
     BowAndArrow,
     Sword,
+    None,
 }
 
 let viewAngle = 0;
 
 
-tiles.setCurrentTilemap(tilemap`level2`);
+tiles.setCurrentTilemap(tilemap`Platform0`);
 scene.setBackgroundImage(assets.image`background`);
 
 class Animations {
@@ -82,6 +84,10 @@ class Animations {
         animation.runImageAnimation(projectile, assets.animation`turretShootProjectile`, msDelay, true)
     }
 
+    static bowShootAnimation(projectile: Sprite) {
+        let msDelay = 200
+        animation.runImageAnimation(projectile, assets.animation`turretShootProjectile`, msDelay, true)
+    }
 }
 
 class GameUtils {
@@ -129,8 +135,38 @@ class BowAndArrow {
     sprite: Sprite
 
     constructor() {
-        this.sprite = sprites.create(assets.image`bowAndArrow`, SpriteKind.Food);;
+        this.sprite = sprites.create(assets.image`bowAndArrow`, SpriteKind.Food);
+        
     }
+
+    static checkBowShot() {
+        if (player.handHeldId != WeaponHeld.BowAndArrow) return;
+        if (controller.A.isPressed()) {
+            //Animations.bowShootAnimation(player.hand);
+            let dirX = Render.getAttribute(Render.attribute.dirX)
+            let dirY = Render.getAttribute(Render.attribute.dirY)
+            //let angle = Math.atan2(dirY, dirX);
+            let arrowVx = Math.cos(viewAngle)*30;
+            let arrowVy = Math.sin(viewAngle)*30;
+            let dummySprite = sprites.create(img`1`, SpriteKind.Food)
+            dummySprite.setPosition(player.sprite.x, player.sprite.y)
+            console.log(arrowVx + " | " + arrowVy)
+            let projectile = sprites.createProjectileFromSprite(assets.image`arrowBase`, dummySprite, arrowVx, arrowVy);
+            projectile.setScale(0.5, ScaleAnchor.Middle);
+            sprites.destroy(dummySprite);
+
+            let enemyArray = sprites.allOfKind(SpriteKind.Enemy);
+            for (let enemy of enemyArray) {
+                let distance = GameUtils.getDistance(enemy.x, enemy.y, projectile.x, projectile.y);
+                if (distance <= 5 && player.sprite.overlapsWith(enemy) == false && enemy.data["kind"] == EnemyKind.Slime) {
+                    //Render.setSpriteAttribute(enemy, RCSpriteAttribute.ZOffset, 0)
+                    Animations.slimeAnimationDeath(enemy);
+                }
+            }
+        }
+    }
+
+
 
     
 }
@@ -170,12 +206,13 @@ class Player {
         info.setLife(3)
         tiles.placeOnRandomTile(player, assets.tile`baseTransparency16`)
         this.sprite = player;
-        this.hand = sprites.create(assets.image`swordHeld`, SpriteKind.Food)
-        this.hand.setScale(4, ScaleAnchor.Middle)
-        this.hand.setFlag(SpriteFlag.RelativeToCamera, true)
-        this.handHeldId = WeaponHeld.Sword;
-        this.hand.x = 130
-        this.hand.y = 95
+        this.handHeldId = WeaponHeld.None;
+        let handSprite: Sprite = sprites.create(assets.image`handNone`, SpriteKind.Food);
+        handSprite.setScale(4, ScaleAnchor.Middle)
+        handSprite.setFlag(SpriteFlag.RelativeToCamera, true)
+        handSprite.x = 130
+        handSprite.y = 95
+        this.hand = handSprite;
     }
 
     static handBobbing() {
@@ -188,32 +225,49 @@ class Player {
     }
 
     static checkWeaponChange() {
-        browserEvents.O.onEvent(browserEvents.KeyEvent.Pressed, function () {
-            if (player.handHeldId == WeaponHeld.Sword) {
-                player.handHeldId = WeaponHeld.BowAndArrow
-            }
-            else {
-                player.handHeldId = WeaponHeld.Sword
-            }
-        })
-        Player.checkHeld();
+        
+        console.log(typeof (player.handHeldId));
+        if (player.handHeldId == WeaponHeld.None) {
+            player.handHeldId = WeaponHeld.Sword
+        }
+        else if (player.handHeldId == WeaponHeld.Sword) {
+            player.handHeldId = WeaponHeld.BowAndArrow
+        }
+        else if (player.handHeldId == WeaponHeld.BowAndArrow) {
+            player.handHeldId = WeaponHeld.None
+        }
+        console.log("TO --> " + typeof (player.handHeldId));
+        player.hand = Player.checkHeld();
+        
         
     }
 
     static checkHeld() {
-        if (player.handHeldId == WeaponHeld.Sword) {
-            sprites.destroy(player.hand)
-            player.hand = sword.sprite;
-
+        let handSprite: Sprite = null;
+        if (player.hand != null) sprites.destroy(player.hand);
+        console.log(player.handHeldId);
+        if (player.handHeldId == WeaponHeld.None) {
+            console.log("destr bow")
+            handSprite = sprites.create(assets.image`handNone`, SpriteKind.Food)
+        }
+        else if (player.handHeldId == WeaponHeld.Sword ) {
+            console.log("destr hand")
+            let newSword = new Sword();
+            handSprite = newSword.sprite;
+            Animations.swordAnimation(handSprite);
+          
         }
         else if (player.handHeldId == WeaponHeld.BowAndArrow) {
-            sprites.destroy(player.hand)
-            player.hand = bowAndArrow.sprite;
+            console.log("destr sword")
+            let newBow = new BowAndArrow();
+            handSprite = newBow.sprite;
         }
-        player.hand.setScale(4, ScaleAnchor.Middle)
-        player.hand.setFlag(SpriteFlag.RelativeToCamera, true)
-        player.hand.x = 130
-        player.hand.y = 95
+        
+        handSprite.setScale(4, ScaleAnchor.Middle)
+        handSprite.setFlag(SpriteFlag.RelativeToCamera, true)
+        handSprite.x = 130
+        handSprite.y = 95
+        return handSprite;
     }
 
     static checkCollision() {
@@ -232,11 +286,11 @@ class Player {
         }
         for (let projectile of projectileArray) {
             let distance = GameUtils.getDistance(projectile.x, projectile.y, player.sprite.x, player.sprite.y)
-            console.log("PROJECTILE DISTANCE: " + distance);
+            
             if (distance <= 4.5) {
                 projectile.vx = 0;
                 projectile.vy = 0;
-                console.log("DAMAGE TAKEN");
+               
                 timer.throttle("projectileDamage", 1000, function () {
                     info.changeLifeBy(-1);
                     scene.cameraShake(40, 200);
@@ -284,7 +338,7 @@ class Slime {
         let speedFactor = 20;
         let angle = GameUtils.getAngle(slimeEnemy.x, slimeEnemy.y, player.sprite.x, player.sprite.y)
         let distance = GameUtils.getDistance(slimeEnemy.x, slimeEnemy.y, player.sprite.x, player.sprite.y);
-        console.log(distance);
+        
         if (distance <= maxDistance) {
             slimeEnemy.vx = Math.cos(angle) * speedFactor;
             slimeEnemy.vy = Math.sin(angle) * speedFactor;
@@ -336,7 +390,6 @@ class Turret {
         let distance = GameUtils.getDistance(turretEnemy.x, turretEnemy.y, player.sprite.x, player.sprite.y);
         let vxSpeedProj = Math.cos(angle) * speedFactor;
         let vySpeedProj = Math.sin(angle) * speedFactor;
-        console.log(distance);
         if (distance <= maxDistance) {
 
             timer.throttle("createProjectile", 3000, function () {
@@ -366,12 +419,14 @@ class Turret {
 
 
 
-let player = new Player();
-let sword = new Sword();
-let bowAndArrow = new BowAndArrow();
+
+
+let player = new Player(); //MANTAIN THIS ORDER
 //Render.setAttribute(Render.attribute.fov, 90);
-Slime.spawnSlimes(3);
-Turret.spawnTurrets(2);
+let slimeAmount = 3
+let turretAmount = 2
+Slime.spawnSlimes(slimeAmount);
+Turret.spawnTurrets(turretAmount);
 
 let enemyArray = sprites.allOfKind(SpriteKind.Enemy);
 let turretArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Turret);
@@ -379,27 +434,27 @@ let slimeArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Sl
 
 //LEVEL 2
 function checkLevelClear() {
-
+    
     let winTiles: tiles.Location[] = tiles.getTilesByType(assets.tile`collectibleInsignia`);
-
-    for (let winTile of winTiles) {
-        if (player.sprite.tilemapLocation() == winTile) {
-
+    if (currentLevel = 1){
+        for (let winTile of winTiles) {
+            let distance = GameUtils.getDistance(winTile.x, winTile.y, player.sprite.x, player.sprite.y)
+            if (distance <= 3) {
+                game.splash("You've escaped", "......or have you?");
+                currentLevel = currentLevel + 1;
+                startLevel();
+            }
         }
     }
+    
 }
 let currentLevel = 1;
 
 
 
 function startLevel() {
-    for (let enemy of sprites.allOfKind(SpriteKind.Enemy)) {
-        sprites.destroy(enemy);
-    }
-    for (let proj of sprites.allOfKind(SpriteKind.Projectile)) {
-        sprites.destroy(proj);
-    }
-
+    sprites.destroyAllSpritesOfKind(SpriteKind.Enemy);
+    sprites.destroyAllSpritesOfKind(SpriteKind.Projectile);
     let slimeEnemies = [];
     let turretEnemies = [];
 
@@ -407,33 +462,41 @@ function startLevel() {
     if (currentLevel == 2) {
         game.splash("The walls are closing in...");
 
-        for (let col = 4; col < 12; col += 2) {
-            for (let row = 4; row < 12; row += 2) {
+        //for (let col = 4; col < 12; col += 2) {
+            //for (let row = 4; row < 12; row += 2) {
 
-                tiles.setTileAt(tiles.getTileLocation(col, row), sprites.dungeon.purpleOuterWest0);
-                tiles.setWallAt(tiles.getTileLocation(col, row), true);
-            }
-        }
+                //tiles.setTileAt(tiles.getTileLocation(col, row), sprites.dungeon.purpleOuterWest0);
+                //tiles.setWallAt(tiles.getTileLocation(col, row), true);
+            //}
+        //}
     }
 
 
-    if (player == null) {
-        player = new Player();
-    } else {
-        tiles.placeOnRandomTile(player.sprite, assets.tile`baseTransparency16`);
-    }
+    //if (player == null) {
+        //player = new Player();
 
-    let slimeCount = 1 + currentLevel;
-    let turretCount = currentLevel;
+    
+    tiles.placeOnRandomTile(player.sprite, assets.tile`baseTransparency16`);
+    
 
-    for (let i = 0; i < slimeCount; i++) {
-        slimeEnemies.push(new Slime());
-    }
+    slimeAmount = 1 + currentLevel;
+    turretAmount = currentLevel;
 
-    for (let i = 0; i < turretCount; i++) {
-        turretEnemies.push(new Turret());
-    }
+    Slime.spawnSlimes(slimeAmount);
+    Turret.spawnTurrets(turretAmount);
+    viewAngle = 0
+    //for (let i = 0; i < slimeCount; i++) {
+        //slimeEnemies.push(new Slime());
+    //}
 
+    //for (let i = 0; i < turretCount; i++) {
+        //turretEnemies.push(new Turret());
+    //}
+
+    enemyArray = sprites.allOfKind(SpriteKind.Enemy);
+    turretArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Turret);
+    slimeArray = enemyArray.filter(sprite => sprite.data["kind"] == EnemyKind.Slime);
+    viewAngle = 0
     game.splash("Level " + currentLevel);
 }
 
@@ -443,7 +506,12 @@ function startLevel() {
 
 game.onUpdate(function () {
     GameUtils.angleManagement();
-    Player.handBobbing();
+
+
+    browserEvents.O.onEvent(browserEvents.KeyEvent.Pressed, function () {
+        Player.checkWeaponChange();
+    })
+    
     for (let turret of turretArray) {
         Turret.controlTurretEnemyAi(turret);
     }
@@ -451,8 +519,10 @@ game.onUpdate(function () {
     for (let slime of slimeArray) {
         Slime.controlSlimeEnemyAi(slime);
     }
-    Player.checkWeaponChange();
-    Sword.checkSwordSlash();
+    
+    if (player.handHeldId == WeaponHeld.Sword) Sword.checkSwordSlash();
+    if (player.handHeldId == WeaponHeld.BowAndArrow) BowAndArrow.checkBowShot();
+    Player.handBobbing();
     Player.checkCollision();
     checkLevelClear();
 })
